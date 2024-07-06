@@ -8,4 +8,3 @@ enum class ServiceActions {
 }
 
 const val COPY_FROM_CB = "cfc"
-var laptopIp: String? = null

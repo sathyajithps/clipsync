@@ -1,9 +1,12 @@
 package dev.sathyajith.clipsync
 
 import android.content.ClipboardManager
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
 import android.os.Bundle
-import android.util.Log
+import android.os.IBinder
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
@@ -17,29 +20,34 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.core.content.getSystemService
 import dev.sathyajith.clipsync.ui.theme.ClipSyncTheme
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    private lateinit var mService: ClipSyncService
+    private var mBound: Boolean = false
+    private val connection = object : ServiceConnection {
+
+        override fun onServiceConnected(className: ComponentName, service: IBinder) {
+            val binder = service as ClipSyncService.LocalBinder
+            mService = binder.getService()
+            mBound = true
+        }
+
+        override fun onServiceDisconnected(arg0: ComponentName) {
+            mBound = false
+        }
+    }
+
+
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
 
         if (intent.action == COPY_FROM_CB) {
             intent.action = null
-            if (laptopIp != null && hasFocus) {
+            if (hasFocus && mBound && mService.multicastLink != null) {
                 val clipboardManager = applicationContext.getSystemService<ClipboardManager>()
                 val txt = clipboardManager?.primaryClip?.getItemAt(0)?.text
                 if (txt != null) {
-                    CoroutineScope(Dispatchers.IO).launch {
-                        try {
-                            val response = khttp.post("http://$laptopIp/", data = txt.toString())
-                            Log.i(CST, "Clipboard data sent. Response code: ${response.statusCode}")
-                        } catch (e: Exception) {
-                            // TODO: set ip to null if the server is unreachable
-                            Log.e(CST, "Error while sending clipboard data: $e")
-                        }
-                    }
+                    mService.multicastLink!!.sendData(txt.toString())
                 }
             }
             moveTaskToBack(true)
@@ -74,9 +82,22 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        Intent(this, ClipSyncService::class.java).also { intent ->
+            bindService(intent, connection, Context.BIND_AUTO_CREATE)
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        unbindService(connection)
+        mBound = false
+    }
+
     private fun startServices(action: ServiceActions) {
         if (getServiceState(this) == ServiceState.STOPPED && action == ServiceActions.STOP) return
-        Intent(this, DeviceDiscoveryService::class.java).also {
+        Intent(this, ClipSyncService::class.java).also {
             it.action = action.name
             startForegroundService(it)
         }

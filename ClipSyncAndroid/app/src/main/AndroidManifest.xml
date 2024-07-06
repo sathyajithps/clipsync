@@ -19,7 +19,7 @@
         android:theme="@style/Theme.ClipSync"
         android:usesCleartextTraffic="true">
         <service
-            android:name=".DeviceDiscoveryService"
+            android:name=".ClipSyncService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="specialUse"/>

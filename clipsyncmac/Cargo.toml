@@ -5,9 +5,5 @@ edition = "2021"
 
 [dependencies]
 clipboard-rs = "0.1.7"
-local-ip-address = "0.6.1"
-searchlight = "0.3.2"
-touche = "0.0.9"
-ureq = "2.9.7"
 lazy_static = "1.5.0"
 socket2 = { version = "0.5.7", features = ["all"] }
