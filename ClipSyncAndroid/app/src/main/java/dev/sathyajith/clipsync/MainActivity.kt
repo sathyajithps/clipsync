@@ -22,13 +22,13 @@ import androidx.core.content.getSystemService
 import dev.sathyajith.clipsync.ui.theme.ClipSyncTheme
 
 class MainActivity : ComponentActivity() {
-    private lateinit var mService: ClipSyncService
+    private lateinit var mClipSync: ClipSyncService
     private var mBound: Boolean = false
     private val connection = object : ServiceConnection {
 
         override fun onServiceConnected(className: ComponentName, service: IBinder) {
             val binder = service as ClipSyncService.LocalBinder
-            mService = binder.getService()
+            mClipSync = binder.getService()
             mBound = true
         }
 
@@ -43,11 +43,11 @@ class MainActivity : ComponentActivity() {
 
         if (intent.action == COPY_FROM_CB) {
             intent.action = null
-            if (hasFocus && mBound && mService.multicastLink != null) {
+            if (hasFocus && mBound && mClipSync.multicastLink != null) {
                 val clipboardManager = applicationContext.getSystemService<ClipboardManager>()
                 val txt = clipboardManager?.primaryClip?.getItemAt(0)?.text
                 if (txt != null) {
-                    mService.multicastLink!!.sendData(txt.toString())
+                    mClipSync.multicastLink!!.sendData(txt.toString())
                 }
             }
             moveTaskToBack(true)

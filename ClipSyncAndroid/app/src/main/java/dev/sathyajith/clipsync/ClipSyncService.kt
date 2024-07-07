@@ -9,6 +9,7 @@ import android.app.Service
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Color
 import android.net.wifi.WifiManager
 import android.os.Binder
@@ -17,9 +18,11 @@ import android.os.SystemClock
 import android.util.Log
 import androidx.core.content.getSystemService
 
+
 class ClipSyncService : Service() {
     var multicastLink: MulticastLink? = null
     private var mIsServiceStarted = false
+    private var mScreenOnOffReceiver: ScreenOnOffReceiver? = null
     private val binder = LocalBinder()
 
 
@@ -73,8 +76,18 @@ class ClipSyncService : Service() {
         val wifiManager = applicationContext.getSystemService<WifiManager>()!!
         val clipboardManager = applicationContext.getSystemService<ClipboardManager>()!!
 
+        if (mScreenOnOffReceiver != null){
+            unregisterReceiver(mScreenOnOffReceiver)
+            mScreenOnOffReceiver = null
+        }
+
         multicastLink?.dispose()
-        multicastLink = MulticastLink(ipType = IpType.IPV4, wifiManager, clipboardManager)
+        multicastLink = MulticastLink(IpType.IPV4, wifiManager, clipboardManager)
+
+        val filter = IntentFilter(Intent.ACTION_SCREEN_ON)
+        filter.addAction(Intent.ACTION_SCREEN_OFF)
+        mScreenOnOffReceiver = ScreenOnOffReceiver(multicastLink!!)
+        registerReceiver(mScreenOnOffReceiver, filter)
 
         mIsServiceStarted = true
 
@@ -83,7 +96,12 @@ class ClipSyncService : Service() {
 
     private fun stopService() {
         try {
+            if (mScreenOnOffReceiver != null){
+                unregisterReceiver(mScreenOnOffReceiver)
+                mScreenOnOffReceiver = null
+            }
             multicastLink?.dispose()
+            multicastLink = null
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
         } catch (e: Exception) {

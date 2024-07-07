@@ -18,39 +18,45 @@ import java.net.NetworkInterface
 
 
 private const val PORT = 7645
-private val IPV4 = InetAddress.getByName("224.0.0.123");
-private val IPV6 = InetAddress.getByName("ff02::123");
+private val IPV4 = InetAddress.getByName("224.0.0.123")
+private val IPV6 = InetAddress.getByName("ff02::123")
 
 enum class IpType {
     IPV4,
     IPV6
 }
 
-class MulticastLink(ipType: IpType, wifiManager: WifiManager, clipboardManager: ClipboardManager) {
-    private val mIpType = ipType
-    private val mWifiManager = wifiManager
+class MulticastLink(
+    private val mIpType: IpType,
+    private val mWifiManager: WifiManager,
+    private val mClipboardManager: ClipboardManager
+) {
     private var mWifiMulticastLock: MulticastLock? = null
-    private var mSenderSocket: MulticastSocket
-    private var mServerHandle: Job
+    private var mSenderSocket: MulticastSocket? = null
+    private var mServerHandle: Job? = null
 
     init {
+        create()
+    }
+
+    fun create() {
         getMulticastLock()
 
-        val addr = when (ipType) {
+        val addr = when (mIpType) {
             IpType.IPV4 -> InetSocketAddress(IPV4, PORT)
             IpType.IPV6 -> InetSocketAddress(IPV6, PORT)
         }
 
         mSenderSocket = MulticastSocket(PORT)
-        mSenderSocket.joinGroup(addr.address)
-        mSenderSocket.loopbackMode = true
+        mSenderSocket!!.joinGroup(addr.address)
+        mSenderSocket!!.loopbackMode = true
 
         // Server creation
         mServerHandle = CoroutineScope(Dispatchers.IO).launch {
             val serverMulticastSocket = MulticastSocket(addr)
             serverMulticastSocket.loopbackMode = true
 
-            when (ipType) {
+            when (mIpType) {
                 IpType.IPV4 -> serverMulticastSocket.joinGroup(
                     addr,
                     NetworkInterface.getByName("0.0.0.0")
@@ -69,7 +75,7 @@ class MulticastLink(ipType: IpType, wifiManager: WifiManager, clipboardManager: 
 
                 val dataReceived = pkt.data.slice(0..<pkt.length).toByteArray()
 
-                clipboardManager.setPrimaryClip(
+                mClipboardManager.setPrimaryClip(
                     ClipData.newPlainText(
                         "ClipSync",
                         dataReceived.toString(Charsets.UTF_8)
@@ -84,6 +90,10 @@ class MulticastLink(ipType: IpType, wifiManager: WifiManager, clipboardManager: 
     }
 
     fun sendData(data: String) {
+        if (mSenderSocket == null) {
+            throw Exception("Sender socket not initialized")
+        }
+
         CoroutineScope(Dispatchers.IO).launch {
             val ip = when (mIpType) {
                 IpType.IPV4 -> IPV4
@@ -96,13 +106,13 @@ class MulticastLink(ipType: IpType, wifiManager: WifiManager, clipboardManager: 
                 buf, buf.size,
                 ip, PORT
             )
-            mSenderSocket.send(pkt)
+            mSenderSocket!!.send(pkt)
         }
     }
 
     fun dispose() {
-        mServerHandle.cancel("Disposed")
-        mSenderSocket.close()
+        mServerHandle?.cancel("Disposed")
+        mSenderSocket?.close()
         mWifiMulticastLock?.release()
     }
 
