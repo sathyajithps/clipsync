@@ -186,6 +186,7 @@ name = "clipsyncmac"
 version = "0.1.0"
 dependencies = [
  "clipboard-rs",
+ "core-foundation",
  "lazy_static",
  "socket2",
 ]

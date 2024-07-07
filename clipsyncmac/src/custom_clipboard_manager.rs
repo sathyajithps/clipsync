@@ -17,11 +17,14 @@ fn get_clipboard_text_data(ctx: &ClipboardContext) -> Option<String> {
 pub struct CustomClipboardManager {
     ctx: ClipboardContext,
     last_pasted: Arc<RwLock<String>>,
-    multicast_link: MulticastLink,
+    multicast_link: Arc<RwLock<MulticastLink>>,
 }
 
 impl CustomClipboardManager {
-    pub fn new(last_pasted: Arc<RwLock<String>>, multicast_link: MulticastLink) -> Self {
+    pub fn new(
+        last_pasted: Arc<RwLock<String>>,
+        multicast_link: Arc<RwLock<MulticastLink>>,
+    ) -> Self {
         let ctx = ClipboardContext::new().unwrap();
 
         CustomClipboardManager {
@@ -40,7 +43,11 @@ impl ClipboardHandler for CustomClipboardManager {
                     return;
                 }
 
-                self.multicast_link.send_data(txt);
+                if let Ok(multicast_link) = self.multicast_link.try_read() {
+                    multicast_link.send_data(txt);
+                } else {
+                    eprintln!("Could not acquire multicast link to send clipboard data");
+                }
             }
         }
     }
