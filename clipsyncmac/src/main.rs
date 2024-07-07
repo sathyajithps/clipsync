@@ -1,7 +1,12 @@
-use std::sync::{Arc, RwLock};
+use std::{
+    // fs::File,
+    // process::exit,
+    sync::{Arc, RwLock},
+};
 
 use clipboard_rs::{ClipboardWatcher, ClipboardWatcherContext};
 use custom_clipboard_manager::CustomClipboardManager;
+// use daemonize_me::Daemon;
 use multicast_link::{IpType, MulticastLink};
 use screen_off_on_detector::screen_off_on_detector;
 
@@ -10,6 +15,24 @@ mod multicast_link;
 mod screen_off_on_detector;
 
 fn main() {
+    // let stdout = File::create("info.log").unwrap();
+    // let stderr = File::create("err.log").unwrap();
+    // let daemon = Daemon::new()
+    //     .pid_file("example.pid", Some(false))
+    //     .umask(0o000)
+    //     .work_dir(".")
+    //     .stdout(stdout)
+    //     .stderr(stderr)
+    //     .start();
+
+    // match daemon {
+    //     Ok(_) => println!("Daemonized with success"),
+    //     Err(e) => {
+    //         eprintln!("Error, {}", e);
+    //         exit(-1);
+    //     }
+    // }
+
     let last_pasted = Arc::new(RwLock::new(String::new()));
     let multicast_link = MulticastLink::new(IpType::IPV4, last_pasted.clone());
     let multicast_link = Arc::new(RwLock::new(multicast_link));
