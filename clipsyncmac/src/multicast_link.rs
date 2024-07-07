@@ -145,6 +145,17 @@ fn build_udp_server(
 
                 if let Ok(shut_down) = rx.try_recv() {
                     if shut_down {
+                        match addr.ip() {
+                            IpAddr::V4(ref v4) => {
+                                listener
+                                    .leave_multicast_v4(v4, &Ipv4Addr::new(0, 0, 0, 0))
+                                    .unwrap();
+                            }
+                            IpAddr::V6(ref v6) => {
+                                listener.leave_multicast_v6(v6, 0).unwrap();
+                            }
+                        };
+
                         break;
                     }
                 }

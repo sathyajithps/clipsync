@@ -9,12 +9,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.net.DatagramPacket
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.MulticastSocket
 import java.net.NetworkInterface
+import java.net.SocketTimeoutException
 
 
 private const val PORT = 7645
@@ -69,22 +71,40 @@ class MulticastLink(
             Log.i(CST, "Server ready")
 
             while (true) {
+                if (!isActive) {
+                    when (mIpType) {
+                        IpType.IPV4 -> serverMulticastSocket.leaveGroup(
+                            addr,
+                            NetworkInterface.getByName("0.0.0.0")
+                        )
+
+                        IpType.IPV6 -> serverMulticastSocket.leaveGroup(
+                            addr,
+                            NetworkInterface.getByIndex(0)
+                        )
+                    }
+                }
                 val buffer = ByteArray(1024)
                 val pkt = DatagramPacket(buffer, 1024)
-                serverMulticastSocket.receive(pkt)
+                try {
+                    serverMulticastSocket.soTimeout = 100
+                    serverMulticastSocket.receive(pkt)
 
-                val dataReceived = pkt.data.slice(0..<pkt.length).toByteArray()
+                    val dataReceived = pkt.data.slice(0..<pkt.length).toByteArray()
 
-                mClipboardManager.setPrimaryClip(
-                    ClipData.newPlainText(
-                        "ClipSync",
-                        dataReceived.toString(Charsets.UTF_8)
+                    mClipboardManager.setPrimaryClip(
+                        ClipData.newPlainText(
+                            "ClipSync",
+                            dataReceived.toString(Charsets.UTF_8)
+                        )
                     )
-                )
-                Log.i(
-                    CST,
-                    "Received data from: ${pkt.address}"
-                )
+                    Log.i(
+                        CST,
+                        "Received data from: ${pkt.address}"
+                    )
+                } catch (_: SocketTimeoutException){
+                    // ignore
+                }
             }
         }
     }
