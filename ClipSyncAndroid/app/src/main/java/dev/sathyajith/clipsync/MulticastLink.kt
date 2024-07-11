@@ -16,6 +16,7 @@ import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.MulticastSocket
 import java.net.NetworkInterface
+import java.net.SocketException
 import java.net.SocketTimeoutException
 
 
@@ -71,22 +72,23 @@ class MulticastLink(
             Log.i(CST, "Server ready")
 
             while (true) {
-                if (!isActive) {
-                    when (mIpType) {
-                        IpType.IPV4 -> serverMulticastSocket.leaveGroup(
-                            addr,
-                            NetworkInterface.getByName("0.0.0.0")
-                        )
-
-                        IpType.IPV6 -> serverMulticastSocket.leaveGroup(
-                            addr,
-                            NetworkInterface.getByIndex(0)
-                        )
-                    }
-                }
-                val buffer = ByteArray(1024)
-                val pkt = DatagramPacket(buffer, 1024)
                 try {
+                    if (!isActive) {
+                        when (mIpType) {
+                            IpType.IPV4 -> serverMulticastSocket.leaveGroup(
+                                addr,
+                                NetworkInterface.getByName("0.0.0.0")
+                            )
+
+                            IpType.IPV6 -> serverMulticastSocket.leaveGroup(
+                                addr,
+                                NetworkInterface.getByIndex(0)
+                            )
+                        }
+                    }
+                    val buffer = ByteArray(1400)
+                    val pkt = DatagramPacket(buffer, 1400)
+
                     serverMulticastSocket.soTimeout = 100
                     serverMulticastSocket.receive(pkt)
 
@@ -104,6 +106,8 @@ class MulticastLink(
                     )
                 } catch (_: SocketTimeoutException){
                     // ignore
+                } catch (_: SocketException) {
+                    // ignore EADDRNOTAVAIL
                 }
             }
         }

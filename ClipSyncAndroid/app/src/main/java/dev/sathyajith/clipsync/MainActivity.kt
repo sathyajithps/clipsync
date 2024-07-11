@@ -96,7 +96,6 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startServices(action: ServiceActions) {
-        if (getServiceState(this) == ServiceState.STOPPED && action == ServiceActions.STOP) return
         Intent(this, ClipSyncService::class.java).also {
             it.action = action.name
             startForegroundService(it)

@@ -141,8 +141,6 @@ fn build_udp_server(
             let listener: UdpSocket = socket.into();
 
             loop {
-                let mut buf = [0u8; 1024];
-
                 if let Ok(shut_down) = rx.try_recv() {
                     if shut_down {
                         match addr.ip() {
@@ -159,6 +157,8 @@ fn build_udp_server(
                         break;
                     }
                 }
+
+                let mut buf = [0u8; 1400];
 
                 match listener.recv_from(&mut buf) {
                     Ok((len, remote_addr)) => {

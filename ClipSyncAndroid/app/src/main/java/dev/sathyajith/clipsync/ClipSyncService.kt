@@ -90,8 +90,6 @@ class ClipSyncService : Service() {
         registerReceiver(mScreenOnOffReceiver, filter)
 
         mIsServiceStarted = true
-
-        setServiceState(this, ServiceState.STARTED)
     }
 
     private fun stopService() {
@@ -109,7 +107,6 @@ class ClipSyncService : Service() {
         }
 
         mIsServiceStarted = false
-        setServiceState(this, ServiceState.STOPPED)
     }
 
     private fun createNotification(): Notification {
